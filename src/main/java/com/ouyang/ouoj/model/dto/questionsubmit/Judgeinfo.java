@@ -1,0 +1,28 @@
+package com.ouyang.ouoj.model.dto.questionsubmit;
+
+
+import lombok.Data;
+
+/**
+ * 题目配置
+ */
+@Data
+public class Judgeinfo {
+
+    /**
+     * 程序执行信息（ms）
+     */
+    private Long message;
+
+    /**
+     * 消耗内存
+     */
+    private Long memory;
+
+    /**
+     * 消耗时间(KB)
+     */
+    private Long time;
+
+
+}
