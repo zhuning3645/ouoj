@@ -1,18 +1,14 @@
 package com.ouyang.ouoj.model.dto.question;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
+
 import lombok.Data;
 
 import java.io.Serializable;
-import java.util.Date;
 import java.util.List;
 
 /**
  * 创建请求
  *
-
  */
 @Data
 public class QuestionAddRequest implements Serializable {
@@ -40,7 +36,6 @@ public class QuestionAddRequest implements Serializable {
 
     /**
      * 判题用例(json数组)
-     * todo 待修改
      */
     private List<JudgeCase> judgeCase;
 

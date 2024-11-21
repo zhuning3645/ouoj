@@ -1,11 +1,19 @@
 package com.ouyang.ouoj.controller;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ouyang.ouoj.annotation.AuthCheck;
 import com.ouyang.ouoj.common.BaseResponse;
 import com.ouyang.ouoj.common.ErrorCode;
 import com.ouyang.ouoj.common.ResultUtils;
+import com.ouyang.ouoj.constant.UserConstant;
 import com.ouyang.ouoj.exception.BusinessException;
+import com.ouyang.ouoj.model.dto.question.QuestionQueryRequest;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitAddRequest;
+import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
+import com.ouyang.ouoj.model.entity.Question;
+import com.ouyang.ouoj.model.entity.QuestionSubmit;
 import com.ouyang.ouoj.model.entity.User;
+import com.ouyang.ouoj.model.vo.QuestionSubmitVO;
 import com.ouyang.ouoj.service.QuestionSubmitService;
 import com.ouyang.ouoj.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +41,7 @@ public class QuestionSubmitController {
     private UserService userService;
 
     /**
-     * 点赞 / 取消点赞
+     * 题目提交
      *
      * @param questionSubmitAddRequest
      * @param request
@@ -49,6 +57,25 @@ public class QuestionSubmitController {
         final User loginUser = userService.getLoginUser(request);
         long questionSubmitId = questionSubmitService.doQuestionSubmit(questionSubmitAddRequest, loginUser);
         return ResultUtils.success(questionSubmitId);
+    }
+
+    /**
+     * 分页获取题目提交列表（除管理员，普通用户只能看到非答案，提交代码等公开信息）
+     *
+     * @param questionSubmitQueryRequest
+     * @param request
+     * @return resultNum 本次点赞变化数
+     */
+    @PostMapping("/list/page")
+    public BaseResponse<Page<QuestionSubmitVO>> listQuestionSubmitByPage(@RequestBody QuestionSubmitQueryRequest questionSubmitQueryRequest,
+                                                                         HttpServletRequest request) {
+        long current = questionSubmitQueryRequest.getCurrent();
+        long size = questionSubmitQueryRequest.getPageSize();
+        //从数据库从查询原始的题目列表提交分页信息
+        Page<QuestionSubmit> questionSubmitPage = questionSubmitService.page(new Page<>(current, size),
+                questionSubmitService.getQueryWrapper(questionSubmitQueryRequest));
+        //返回脱敏信息
+        return ResultUtils.success(questionSubmitService.getQuestionSubmitVOPage(questionSubmitPage,userService.getLoginUser(request)));
     }
 
 }

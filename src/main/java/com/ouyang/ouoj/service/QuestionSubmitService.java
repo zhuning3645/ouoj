@@ -1,9 +1,18 @@
 package com.ouyang.ouoj.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ouyang.ouoj.model.dto.question.QuestionQueryRequest;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitAddRequest;
+import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
+import com.ouyang.ouoj.model.entity.Question;
 import com.ouyang.ouoj.model.entity.QuestionSubmit;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ouyang.ouoj.model.entity.User;
+import com.ouyang.ouoj.model.vo.QuestionSubmitVO;
+import com.ouyang.ouoj.model.vo.QuestionVO;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author yifei
@@ -20,5 +29,31 @@ public interface QuestionSubmitService extends IService<QuestionSubmit> {
      */
     long doQuestionSubmit(QuestionSubmitAddRequest questionSubmitAddRequest, User loginUser);
 
+    /**
+     * 获取查询条件
+     *
+     * @param questionSubmitQueryRequest
+     * @return
+     */
+    QueryWrapper<QuestionSubmit> getQueryWrapper(QuestionSubmitQueryRequest questionSubmitQueryRequest);
+
+
+    /**
+     * 获取题目封装
+     *
+     * @param questionSubmit
+     * @param loginUser
+     * @return
+     */
+    QuestionSubmitVO getQuestionSubmitVO(QuestionSubmit questionSubmit, User loginUser);
+
+    /**
+     * 分页获取题目封装
+     *
+     * @param questionSubmitPage
+     * @param loginUser
+     * @return
+     */
+    Page<QuestionSubmitVO> getQuestionSubmitVOPage(Page<QuestionSubmit> questionSubmitPage, User loginUser);
 
 }
