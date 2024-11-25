@@ -1,16 +1,12 @@
 package com.ouyang.ouoj.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ouyang.ouoj.annotation.AuthCheck;
 import com.ouyang.ouoj.common.BaseResponse;
 import com.ouyang.ouoj.common.ErrorCode;
 import com.ouyang.ouoj.common.ResultUtils;
-import com.ouyang.ouoj.constant.UserConstant;
 import com.ouyang.ouoj.exception.BusinessException;
-import com.ouyang.ouoj.model.dto.question.QuestionQueryRequest;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
-import com.ouyang.ouoj.model.entity.Question;
 import com.ouyang.ouoj.model.entity.QuestionSubmit;
 import com.ouyang.ouoj.model.entity.User;
 import com.ouyang.ouoj.model.vo.QuestionSubmitVO;
@@ -27,7 +23,6 @@ import javax.servlet.http.HttpServletRequest;
 
 /**
  * 题目提交接口
- *
  */
 @RestController
 @RequestMapping("/question_submit")
@@ -45,15 +40,15 @@ public class QuestionSubmitController {
      *
      * @param questionSubmitAddRequest
      * @param request
-     * @return resultNum 本次点赞变化数
+     * @return resultNum
      */
     @PostMapping("/")
     public BaseResponse<Long> doQuestionSubmit(@RequestBody QuestionSubmitAddRequest questionSubmitAddRequest,
-            HttpServletRequest request) {
+                                               HttpServletRequest request) {
         if (questionSubmitAddRequest == null || questionSubmitAddRequest.getQuestionId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        // 登录才能点赞
+        // 登录才能提交题目
         final User loginUser = userService.getLoginUser(request);
         long questionSubmitId = questionSubmitService.doQuestionSubmit(questionSubmitAddRequest, loginUser);
         return ResultUtils.success(questionSubmitId);
@@ -75,7 +70,7 @@ public class QuestionSubmitController {
         Page<QuestionSubmit> questionSubmitPage = questionSubmitService.page(new Page<>(current, size),
                 questionSubmitService.getQueryWrapper(questionSubmitQueryRequest));
         //返回脱敏信息
-        return ResultUtils.success(questionSubmitService.getQuestionSubmitVOPage(questionSubmitPage,userService.getLoginUser(request)));
+        return ResultUtils.success(questionSubmitService.getQuestionSubmitVOPage(questionSubmitPage, userService.getLoginUser(request)));
     }
 
 }
