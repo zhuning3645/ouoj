@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 判题信息枚举
+ * 判题信息消息枚举
  */
 public enum JudgeInfoMessageEnum {
 
@@ -64,7 +64,7 @@ public enum JudgeInfoMessageEnum {
         return value;
     }
 
-    public Long getText() {
+    public String getText() {
         return text;
     }
 }

@@ -13,5 +13,5 @@ public interface JudgeService {
      * @param questionSubmitId
      * @return
      */
-    QuestionSubmitVO doJudge(long questionSubmitId);
+    QuestionSubmit doJudge(long questionSubmitId);
 }

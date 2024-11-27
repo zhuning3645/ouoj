@@ -12,7 +12,7 @@ public class JudgeInfo {
     /**
      * 程序执行信息（ms）
      */
-    private Long message;
+    private String message;
 
     /**
      * 消耗内存

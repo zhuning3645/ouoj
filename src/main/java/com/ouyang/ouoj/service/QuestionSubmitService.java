@@ -2,17 +2,12 @@ package com.ouyang.ouoj.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.ouyang.ouoj.model.dto.question.QuestionQueryRequest;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
-import com.ouyang.ouoj.model.entity.Question;
 import com.ouyang.ouoj.model.entity.QuestionSubmit;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ouyang.ouoj.model.entity.User;
 import com.ouyang.ouoj.model.vo.QuestionSubmitVO;
-import com.ouyang.ouoj.model.vo.QuestionVO;
-
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * @author yifei
@@ -56,4 +51,5 @@ public interface QuestionSubmitService extends IService<QuestionSubmit> {
      */
     Page<QuestionSubmitVO> getQuestionSubmitVOPage(Page<QuestionSubmit> questionSubmitPage, User loginUser);
 
+    boolean updateById(QuestionSubmit questionSubmitUpdate);
 }
