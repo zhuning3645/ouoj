@@ -64,7 +64,7 @@ public enum JudgeInfoMessageEnum {
         return value;
     }
 
-    public String getText() {
+    public Long getText() {
         return text;
     }
 }
