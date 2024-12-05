@@ -3,12 +3,11 @@ package com.ouyang.ouoj.judge.codesandbox.impl;
 import com.ouyang.ouoj.judge.codesandbox.CodeSandbox;
 import com.ouyang.ouoj.judge.codesandbox.model.ExecuteCodeRequest;
 import com.ouyang.ouoj.judge.codesandbox.model.ExecuteCodeResponse;
-import com.ouyang.ouoj.model.dto.questionsubmit.JudgeInfo;
+import com.ouyang.ouoj.judge.codesandbox.model.JudgeInfo;
 import com.ouyang.ouoj.model.enums.JudgeInfoMessageEnum;
 import com.ouyang.ouoj.model.enums.QuestionSubmitStatusEnum;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**

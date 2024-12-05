@@ -3,7 +3,7 @@ package com.ouyang.ouoj.judge.strategy;
 import cn.hutool.json.JSONUtil;
 import com.ouyang.ouoj.model.dto.question.JudgeCase;
 import com.ouyang.ouoj.model.dto.question.JudgeConfig;
-import com.ouyang.ouoj.model.dto.questionsubmit.JudgeInfo;
+import com.ouyang.ouoj.judge.codesandbox.model.JudgeInfo;
 import com.ouyang.ouoj.model.entity.Question;
 import com.ouyang.ouoj.model.enums.JudgeInfoMessageEnum;
 

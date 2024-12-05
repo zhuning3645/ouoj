@@ -1,7 +1,6 @@
 package com.ouyang.ouoj.judge.codesandbox.model;
 
 
-import com.ouyang.ouoj.model.dto.questionsubmit.JudgeInfo;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

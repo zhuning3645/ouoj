@@ -1,6 +1,6 @@
 package com.ouyang.ouoj.judge.strategy;
 
-import com.ouyang.ouoj.model.dto.questionsubmit.JudgeInfo;
+import com.ouyang.ouoj.judge.codesandbox.model.JudgeInfo;
 
 /**
  * 判题策略

@@ -3,7 +3,7 @@ package com.ouyang.ouoj.model.vo;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.ouyang.ouoj.model.dto.questionsubmit.JudgeInfo;
+import com.ouyang.ouoj.judge.codesandbox.model.JudgeInfo;
 import com.ouyang.ouoj.model.entity.QuestionSubmit;
 import lombok.Data;
 import org.springframework.beans.BeanUtils;

@@ -42,7 +42,13 @@ class CodeSandboxTest {
     @Test
     void executeCodeByValue() {
         CodeSandbox codeSandbox = CodeSandboxFactory.newInstance(type);
-        String code = "int main(){ }";
+        String code = "public class Main {\n" +
+                "    public static void main(String[] var0) {\n" +
+                "        int var1 = Integer.parseInt(var0[0]);\n" +
+                "        int var2 = Integer.parseInt(var0[1]);\n" +
+                "        System.out.println(\"结果:\" + (var1 + var2));\n" +
+                "    }\n" +
+                "}";
         String language = QuestionSubmitLanguageEnum.JAVA.getValue();
         List<String> inputList = Arrays.asList("1 2", "3 4");
         ExecuteCodeRequest exampleCodeRequest = ExecuteCodeRequest.builder()

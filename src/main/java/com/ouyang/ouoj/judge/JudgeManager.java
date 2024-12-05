@@ -5,7 +5,7 @@ import com.ouyang.ouoj.judge.strategy.DefaultJudgeStrategy;
 import com.ouyang.ouoj.judge.strategy.JavaLanguageJudgeStrategy;
 import com.ouyang.ouoj.judge.strategy.JudgeContext;
 import com.ouyang.ouoj.judge.strategy.JudgeStrategy;
-import com.ouyang.ouoj.model.dto.questionsubmit.JudgeInfo;
+import com.ouyang.ouoj.judge.codesandbox.model.JudgeInfo;
 import com.ouyang.ouoj.model.entity.QuestionSubmit;
 import org.springframework.stereotype.Service;
 
