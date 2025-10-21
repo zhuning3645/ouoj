@@ -16,6 +16,7 @@ import com.ouyang.ouoj.model.entity.QuestionSubmit;
 import com.ouyang.ouoj.model.enums.QuestionSubmitStatusEnum;
 import com.ouyang.ouoj.service.QuestionService;
 import com.ouyang.ouoj.service.QuestionSubmitService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ import javax.annotation.Resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class JudgeServiceImpl implements JudgeService {
 
@@ -45,6 +47,12 @@ public class JudgeServiceImpl implements JudgeService {
         //0.传入题目的提交id 获取到对应的题目、提交信息（包含代码、编程语言）
         QuestionSubmit questionSubmit = questionSubmitService.getById(questionSubmitId);
         if (questionSubmit == null) {
+            System.out.println("Failed to fetch QuestionSubmit with ID: " + questionSubmitId);
+        } else {
+            System.out.println("Fetched QuestionSubmit: " + questionSubmit);
+        }
+
+        if (questionSubmit == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "提交信息不存在");
         }
         Long questionId = questionSubmit.getQuestionId();
@@ -54,7 +62,7 @@ public class JudgeServiceImpl implements JudgeService {
         }
 
         //1.更改判题的状态 只去判断等待中的题目
-        if (questionSubmit.getStatus().equals(QuestionSubmitStatusEnum.WAITING.getValue())) {
+        if (!questionSubmit.getStatus().equals(QuestionSubmitStatusEnum.WAITING.getValue())) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "题目正在判题中");
         }
 
@@ -74,6 +82,8 @@ public class JudgeServiceImpl implements JudgeService {
         String language = questionSubmit.getLanguage();
         //4.获取输入用例 输入到测试
         String judgeCaseStr = question.getJudgeCase();
+
+        log.info("Original JSON: {}", judgeCaseStr);
         List<JudgeCase> judgeCaseList = JSONUtil.toList(judgeCaseStr, JudgeCase.class);
         List<String> inputList = judgeCaseList.stream().map(JudgeCase::getInput).collect(Collectors.toList());
         ExecuteCodeRequest exampleCodeRequest = ExecuteCodeRequest.builder()

@@ -25,7 +25,8 @@ public class JavaLanguageJudgeStrategy implements JudgeStrategy {
     public JudgeInfo doJudge(JudgeContext judgeContext) {
 
         JudgeInfo judgeInfo = judgeContext.getJudgeInfo();
-        Long memory = judgeInfo.getMemory();
+        Long memory = judgeInfo.getMemory() == null ? 0L : judgeInfo.getMemory();
+        // 如果 memory 为 null，则赋值为 0
         Long time = judgeInfo.getTime();
         List<String> inputList = judgeContext.getInputList();
         List<String> outputList = judgeContext.getOutputList();

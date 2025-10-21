@@ -3,8 +3,7 @@ package com.ouyang.ouoj.constant;
 /**
  * 通用常量
  *
- * @author <a href="https://github.com/liouyang">程序员鱼皮</a>
- * @from <a href="https://ouyang.icu">编程导航知识星球</a>
+ *   
  */
 public interface CommonConstant {
 

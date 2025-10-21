@@ -8,6 +8,7 @@ import com.ouyang.ouoj.common.ErrorCode;
 import com.ouyang.ouoj.constant.CommonConstant;
 import com.ouyang.ouoj.exception.BusinessException;
 import com.ouyang.ouoj.judge.JudgeService;
+import com.ouyang.ouoj.judge.codesandbox.CodeSandbox;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitAddRequest;
 import com.ouyang.ouoj.model.dto.questionsubmit.QuestionSubmitQueryRequest;
 import com.ouyang.ouoj.model.entity.Question;
@@ -29,10 +30,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -96,10 +94,12 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "数据插入失败");
         }
        Long questionSubmitId = questionSubmit.getId();
+        System.out.println("题目提交questionSubmitId"+questionSubmitId);
         //执行异步的判题服务
         CompletableFuture.runAsync(()->{
             judgeService.doJudge(questionSubmitId);
         });
+
         return questionSubmitId;
 
     }
@@ -129,7 +129,7 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         queryWrapper.eq(ObjectUtils.isNotEmpty(userId), "userId", userId);
         queryWrapper.eq(ObjectUtils.isNotEmpty(questionId), "questionId", questionId);
         queryWrapper.eq(QuestionSubmitStatusEnum.getEnumByValue(status) != null, "status", status);
-        queryWrapper.eq("isDelete", false);
+        //queryWrapper.eq("isDelete", false);
         queryWrapper.orderBy(SqlUtils.validSortField(sortField), sortOrder.equals(CommonConstant.SORT_ORDER_ASC),
                 sortField);
         return queryWrapper;
@@ -163,10 +163,10 @@ public class QuestionSubmitServiceImpl extends ServiceImpl<QuestionSubmitMapper,
         return questionSubmitVOPage;
     }
 
-    @Override
+    /*@Override
     public boolean updateById(QuestionSubmit questionSubmitUpdate) {
         return false;
-    }
+    }*/
 
 
 }

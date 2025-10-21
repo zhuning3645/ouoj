@@ -6,8 +6,9 @@ import java.io.Serializable;
 import java.util.Date;
 import lombok.Data;
 
+
 /**
- * 帖子点赞
+ * 题目提交
  * @TableName question_submit
  */
 @TableName(value ="question_submit")
@@ -59,8 +60,6 @@ public class QuestionSubmit implements Serializable {
      */
     private Date updateTime;
 
-    @TableLogic
-    private Integer IsDelete;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
