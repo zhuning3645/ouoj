@@ -102,3 +102,8 @@ knife4j:
 #代码沙箱配置
 codesandbox:
   type: remote
+
+# Redis缓存配置
+cache:
+  redis:
+    enabled: true # Redis缓存开关，false为关闭缓存

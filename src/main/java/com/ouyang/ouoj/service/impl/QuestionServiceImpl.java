@@ -18,11 +18,19 @@ import com.ouyang.ouoj.service.UserService;
 import com.ouyang.ouoj.utils.SqlUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.LongSerializationPolicy;
+import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -31,11 +39,31 @@ import java.util.stream.Collectors;
  * @createDate 2024-11-05 11:17:39
  */
 @Service
+@Slf4j
 public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         implements QuestionService {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
+
+    // 配置Gson以避免Long类型精度丢失
+    private static final Gson GSON = new GsonBuilder()
+            .setLongSerializationPolicy(LongSerializationPolicy.STRING)
+            .create();
+    
+    // Redis缓存key前缀
+    private static final String QUESTION_CACHE_PREFIX = "question:";
+    private static final String QUESTION_LIST_CACHE_PREFIX = "question_list:";
+    
+    // 缓存过期时间（秒）
+    private static final long CACHE_EXPIRE_TIME = 3600; // 1小时
+    
+    // 缓存开关 - 可以通过配置文件控制
+    @Value("${cache.redis.enabled:true}")
+    private boolean cacheEnabled = true;
 
     /**
      * 校验题目是否合法
@@ -160,6 +188,354 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question>
         return questionVOPage;
     }
 
+    /**
+     * 带缓存的根据ID获取题目
+     *
+     * @param id 题目ID
+     * @return Question对象
+     */
+    @Override
+    public Question getById(Serializable id) {
+        if (id == null) {
+            return null;
+        }
+        
+        Long questionId;
+        if (id instanceof Long) {
+            questionId = (Long) id;
+        } else {
+            try {
+                questionId = Long.valueOf(id.toString());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        
+        return getQuestionById(questionId);
+    }
+    
+    /**
+     * 根据Long类型ID获取题目（带缓存）
+     *
+     * @param id 题目ID
+     * @return Question对象
+     */
+    public Question getQuestionById(Long id) {
+        if (id == null || id <= 0) {
+            log.warn("getQuestionById: 无效的ID参数: {}", id);
+            return null;
+        }
+        
+        // 如果缓存被禁用，直接查询数据库
+        if (!cacheEnabled) {
+            log.info("getQuestionById: Redis缓存已禁用，直接查询数据库, ID={}", id);
+            return super.getById(id);
+        }
+        
+        String cacheKey = QUESTION_CACHE_PREFIX + id;
+        log.info("getQuestionById: 开始查询题目, ID={}, cacheKey={}", id, cacheKey);
+        
+        try {
+            // 1. 先从Redis缓存中获取
+            Object cachedQuestion = redisTemplate.opsForValue().get(cacheKey);
+            if (cachedQuestion != null) {
+                log.info("getQuestionById: Redis缓存命中, ID={}, cachedData={}", id, cachedQuestion.toString());
+                try {
+                    Question question = GSON.fromJson(cachedQuestion.toString(), Question.class);
+                    
+                    // 缓存一致性检查：验证反序列化后的数据是否有效
+                    if (question != null && question.getId() != null && question.getId().equals(id)) {
+                        log.info("getQuestionById: 缓存数据有效, ID={}, questionId={}", id, question.getId());
+                        return question;
+                    } else {
+                        log.warn("getQuestionById: 缓存数据无效或ID不匹配, 清除缓存, ID={}, cachedQuestionId={}", 
+                                id, question != null ? question.getId() : "null");
+                        // 清除无效缓存
+                        redisTemplate.delete(cacheKey);
+                    }
+                } catch (Exception e) {
+                    log.error("getQuestionById: 缓存反序列化失败, 清除缓存, ID={}, error={}", id, e.getMessage());
+                    // 清除损坏的缓存
+                    redisTemplate.delete(cacheKey);
+                }
+            }
+            
+            log.info("getQuestionById: Redis缓存未命中, 查询数据库, ID={}", id);
+            // 2. 缓存未命中，从数据库查询
+            Question question = super.getById(id);
+            
+            // 3. 如果查询到数据，存入缓存
+            if (question != null) {
+                String jsonData = GSON.toJson(question);
+                log.info("getQuestionById: 数据库查询成功, 存入缓存, ID={}, jsonData={}", id, jsonData);
+                redisTemplate.opsForValue().set(cacheKey, jsonData, CACHE_EXPIRE_TIME, TimeUnit.SECONDS);
+                log.info("getQuestionById: 缓存存储成功, ID={}", id);
+            } else {
+                log.warn("getQuestionById: 数据库中未找到数据, ID={}", id);
+            }
+            
+            return question;
+        } catch (Exception e) {
+            log.error("getQuestionById: Redis操作异常, 直接查询数据库, ID={}, error={}", id, e.getMessage(), e);
+            // Redis异常时直接查询数据库，保证服务可用性
+            return super.getById(id);
+        }
+    }
+
+    /**
+     * 带缓存的获取题目VO
+     *
+     * @param id 题目ID
+     * @param request HTTP请求
+     * @return QuestionVO对象
+     */
+    public QuestionVO getQuestionVOById(Long id, HttpServletRequest request) {
+        Question question = this.getQuestionById(id);
+        if (question == null) {
+            return null;
+        }
+        return this.getQuestionVO(question, request);
+    }
+
+    /**
+     * 清除题目缓存
+     *
+     * @param id 题目ID
+     */
+    public void clearQuestionCache(Long id) {
+        if (id == null || id <= 0) {
+            return;
+        }
+        
+        // 如果缓存被禁用，直接返回
+        if (!cacheEnabled) {
+            log.info("clearQuestionCache: Redis缓存已禁用，跳过缓存清除, ID={}", id);
+            return;
+        }
+        
+        try {
+            String cacheKey = QUESTION_CACHE_PREFIX + id;
+            redisTemplate.delete(cacheKey);
+            
+            // 同时清除相关的列表缓存
+            clearQuestionListCache();
+        } catch (Exception e) {
+            // 缓存清除失败不影响业务逻辑
+        }
+    }
+
+    /**
+     * 清除题目列表缓存
+     */
+    public void clearQuestionListCache() {
+        // 如果缓存被禁用，直接返回
+        if (!cacheEnabled) {
+            log.info("clearQuestionListCache: Redis缓存已禁用，跳过缓存清除");
+            return;
+        }
+        
+        try {
+            Set<String> keys = redisTemplate.keys(QUESTION_LIST_CACHE_PREFIX + "*");
+            if (keys != null && !keys.isEmpty()) {
+                redisTemplate.delete(keys);
+            }
+        } catch (Exception e) {
+            // 缓存清除失败不影响业务逻辑
+        }
+    }
+
+
+
+
+
+    /**
+     * 带缓存的分页获取题目VO列表
+     *
+     * @param questionQueryRequest 查询请求
+     * @param request HTTP请求
+     * @return 分页的题目VO列表
+     */
+    public Page<QuestionVO> getQuestionVOPageWithCache(QuestionQueryRequest questionQueryRequest, HttpServletRequest request) {
+        long current = questionQueryRequest.getCurrent();
+        long size = questionQueryRequest.getPageSize();
+        
+        // 如果缓存被禁用，直接查询数据库
+        if (!cacheEnabled) {
+            log.info("getQuestionVOPageWithCache: Redis缓存已禁用，直接查询数据库");
+            Page<Question> questionPage = this.page(new Page<>(current, size),
+                    this.getQueryWrapper(questionQueryRequest));
+            return this.getQuestionVOPage(questionPage, request);
+        }
+        
+        // 生成缓存key（基于查询条件）
+        String cacheKey = generateListCacheKey(questionQueryRequest);
+        
+        try {
+            // 1. 先从Redis缓存中获取
+            Object cachedPage = redisTemplate.opsForValue().get(cacheKey);
+            if (cachedPage != null) {
+                return GSON.fromJson(cachedPage.toString(), Page.class);
+            }
+            
+            // 2. 缓存未命中，从数据库查询
+            Page<Question> questionPage = this.page(new Page<>(current, size),
+                    this.getQueryWrapper(questionQueryRequest));
+            Page<QuestionVO> questionVOPage = this.getQuestionVOPage(questionPage, request);
+            
+            // 3. 如果查询到数据，存入缓存（缓存时间较短，因为列表数据变化频繁）
+            if (questionVOPage != null && !CollUtil.isEmpty(questionVOPage.getRecords())) {
+                redisTemplate.opsForValue().set(cacheKey, GSON.toJson(questionVOPage), 
+                    CACHE_EXPIRE_TIME / 2, TimeUnit.SECONDS); // 列表缓存时间减半
+            }
+            
+            return questionVOPage;
+        } catch (Exception e) {
+            // Redis异常时直接查询数据库，保证服务可用性
+            Page<Question> questionPage = this.page(new Page<>(current, size),
+                    this.getQueryWrapper(questionQueryRequest));
+            return this.getQuestionVOPage(questionPage, request);
+        }
+    }
+
+    /**
+     * 生成列表查询的缓存key
+     *
+     * @param questionQueryRequest 查询请求
+     * @return 缓存key
+     */
+    private String generateListCacheKey(QuestionQueryRequest questionQueryRequest) {
+        StringBuilder keyBuilder = new StringBuilder(QUESTION_LIST_CACHE_PREFIX);
+        
+        if (questionQueryRequest.getId() != null) {
+            keyBuilder.append("id:").append(questionQueryRequest.getId()).append(":");
+        }
+        if (StringUtils.isNotBlank(questionQueryRequest.getTitle())) {
+            keyBuilder.append("title:").append(questionQueryRequest.getTitle().hashCode()).append(":");
+        }
+        if (StringUtils.isNotBlank(questionQueryRequest.getContent())) {
+            keyBuilder.append("content:").append(questionQueryRequest.getContent().hashCode()).append(":");
+        }
+        if (CollUtil.isNotEmpty(questionQueryRequest.getTags())) {
+            keyBuilder.append("tags:").append(questionQueryRequest.getTags().hashCode()).append(":");
+        }
+        if (questionQueryRequest.getUserId() != null) {
+            keyBuilder.append("userId:").append(questionQueryRequest.getUserId()).append(":");
+        }
+        
+        keyBuilder.append("current:").append(questionQueryRequest.getCurrent()).append(":");
+        keyBuilder.append("size:").append(questionQueryRequest.getPageSize()).append(":");
+        
+        if (StringUtils.isNotBlank(questionQueryRequest.getSortField())) {
+            keyBuilder.append("sort:").append(questionQueryRequest.getSortField()).append(":");
+        }
+        if (StringUtils.isNotBlank(questionQueryRequest.getSortOrder())) {
+            keyBuilder.append("order:").append(questionQueryRequest.getSortOrder());
+        }
+        
+        return keyBuilder.toString();
+    }
+
+    /**
+     * 重写保存方法，保存后清除缓存
+     */
+    @Override
+    public boolean save(Question entity) {
+        boolean result = super.save(entity);
+        if (result) {
+            // 清除列表缓存
+            clearQuestionListCache();
+        }
+        return result;
+    }
+
+    /**
+     * 重写批量保存方法，保存后清除缓存
+     */
+    @Override
+    public boolean saveBatch(Collection<Question> entityList) {
+        boolean result = super.saveBatch(entityList);
+        if (result) {
+            // 清除列表缓存
+            clearQuestionListCache();
+        }
+        return result;
+    }
+
+    /**
+     * 重写更新方法，更新后清除相关缓存
+     */
+    @Override
+    public boolean updateById(Question entity) {
+        boolean result = super.updateById(entity);
+        if (result && entity.getId() != null) {
+            // 清除单个题目缓存和列表缓存
+            clearQuestionCache(entity.getId());
+        }
+        return result;
+    }
+
+    /**
+     * 重写批量更新方法，更新后清除缓存
+     */
+    @Override
+    public boolean updateBatchById(Collection<Question> entityList) {
+        boolean result = super.updateBatchById(entityList);
+        if (result) {
+            // 清除相关缓存
+            for (Question question : entityList) {
+                clearQuestionCache(question.getId());
+            }
+            clearQuestionListCache();
+        }
+        return result;
+    }
+
+    /**
+     * 重写删除方法，删除后清除相关缓存
+     */
+    @Override
+    public boolean removeById(Serializable id) {
+        boolean result = super.removeById(id);
+        if (result) {
+            // 清除相关缓存
+            if (id instanceof Long) {
+                clearQuestionCache((Long) id);
+            } else {
+                try {
+                    Long longId = Long.valueOf(id.toString());
+                    clearQuestionCache(longId);
+                } catch (NumberFormatException e) {
+                    // 忽略无效的ID
+                }
+            }
+            clearQuestionListCache();
+        }
+        return result;
+    }
+
+    /**
+     * 重写批量删除方法，删除后清除缓存
+     */
+    @Override
+    public boolean removeByIds(Collection<?> idList) {
+        boolean result = super.removeByIds(idList);
+        if (result) {
+            // 清除相关题目缓存
+            for (Object id : idList) {
+                if (id instanceof Long) {
+                    clearQuestionCache((Long) id);
+                } else if (id instanceof Serializable) {
+                    try {
+                        Long longId = Long.valueOf(id.toString());
+                        clearQuestionCache(longId);
+                    } catch (NumberFormatException e) {
+                        // 忽略无效的ID
+                    }
+                }
+            }
+        }
+        return result;
+    }
 
 }
 
